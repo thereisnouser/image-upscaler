@@ -36,50 +36,71 @@
         </div>
       </div>      
     <script>
-        function previewImage() {
-            var original = document.getElementById('original');
-            var file = document.getElementById("image-input").files[0];
-            var reader = new FileReader();
-            reader.onloadend = function () {
-                var img = document.createElement('img');
-                img.src = reader.result;
-                img.classList.add('img-fluid');
+      const form = document.querySelector('form');
+      const fileInput = document.getElementById('image-input');
+      const original = document.getElementById('original');
+      const enhanced = document.getElementById('enhanced');
+      const submitBtn = form.querySelector('input[type="submit"]');
 
-                // Get the dimensions of the image
-                var realWidth = img.naturalWidth;
-                var realHeight = img.naturalHeight;
+      fileInput.addEventListener('change', () => {
+        original.innerHTML = '';
+        enhanced.innerHTML = '';
+        const file = fileInput.files[0];
+        if (!file) return;
 
-                img.width = realWidth * 4;
-                console.log(realWidth * 4)
-                img.height = realHeight * 4;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = document.createElement('img');
+          img.className = 'img-fluid border rounded';
+          img.onload = () => {};
+          img.src = reader.result;
+          original.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
 
-                original.appendChild(img);
-            };
-            reader.readAsDataURL(file); // read the file as a data URL
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        enhanced.innerHTML = '';
+        const file = fileInput.files[0];
+        if (!file) { alert('Выберите файл'); return; }
+
+        const fd = new FormData();
+        fd.append('image', file);
+
+        submitBtn.disabled = true;
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-border text-primary';
+        enhanced.appendChild(spinner);
+
+        try {
+          const res = await fetch('/upload', { method: 'POST', body: fd });
+
+          if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(text || `HTTP ${res.status}`);
+          }
+
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+
+          const img = document.createElement('img');
+          img.className = 'img-fluid border rounded';
+          img.onload = () => URL.revokeObjectURL(url);
+          img.src = url;
+
+          enhanced.innerHTML = '';
+          enhanced.appendChild(img);
+        } catch (err) {
+          enhanced.innerHTML = '';
+          const alertDiv = document.createElement('div');
+          alertDiv.className = 'alert alert-danger';
+          alertDiv.textContent = 'Ошибка: ' + err.message;
+          enhanced.appendChild(alertDiv);
+        } finally {
+          submitBtn.disabled = false;
         }
-        var form = document.querySelector('form');
-        var enhanced = document.getElementById('enhanced');
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-            var file = document.querySelector('input[type=file]').files[0];
-            var formData = new FormData();
-            formData.append('image', file);
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(response) {
-                return response.arrayBuffer();
-            })
-            .then(function(buffer) {
-                var blob = new Blob([buffer], {type: 'image/jpeg'});
-                var url = URL.createObjectURL(blob);
-                var img = document.createElement('img');
-                img.src = url;
-                img.classList.add('img-fluid');
-                enhanced.appendChild(img);
-            });
-        });
+      });
     </script>
 </body>
 </html>
