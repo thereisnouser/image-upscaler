@@ -1,8 +1,6 @@
 Flask==2.3.2
 Pillow==10.3.0
-numpy==1.22.0
-tensorflow==2.12.1
-keras==3.9.0
-protobuf==3.20.*
-opencv_python
-tensorflow_hub
+numpy>=1.26.4
+opencv-python>=4.9
+tensorflow==2.17.0
+tensorflow-hub>=0.16
